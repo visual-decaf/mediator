@@ -5,10 +5,10 @@ package main
 #cgo LDFLAGS: -L ./libs -lvisual_decaf
 
 extern int get_id();
-extern void compile(const char* code, int id);
-extern const char* get_token_stream(int id);
-extern const char* get_ast(int id);
-extern const char* get_program(int id);
+extern void compile(char* code, int id);
+extern char* get_token_stream(int id);
+extern char* get_ast(int id);
+extern char* get_program(int id);
 */
 import "C"
 
@@ -55,6 +55,7 @@ func tokenStreamHandler(c *gin.Context) {
 	id := c.Query("id")
 	nid, _ := strconv.Atoi(id)
 	cTokenStream := C.get_token_stream(C.int(nid))
+	defer C.free(unsafe.Pointer(cTokenStream))
 	tokenStream := C.GoString(cTokenStream)
 	writeSuccessResult(c, tokenStream)
 }
@@ -64,6 +65,7 @@ func astHandler(c *gin.Context) {
 	id := c.Query("id")
 	nid, _ := strconv.Atoi(id)
 	cAST := C.get_ast(C.int(nid))
+	defer C.free(unsafe.Pointer(cAST))
 	ast := C.GoString(cAST)
 	writeSuccessResult(c, ast)
 }
@@ -73,6 +75,7 @@ func programHandler(c *gin.Context) {
 	id := c.Query("id")
 	nid, _ := strconv.Atoi(id)
 	cProgram := C.get_program(C.int(nid))
+	defer C.free(unsafe.Pointer(cProgram))
 	program := C.GoString(cProgram)
 	writeSuccessResult(c, program)
 }
