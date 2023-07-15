@@ -5,7 +5,7 @@ package main
 #cgo LDFLAGS: -L ./libs -lvisual_decaf
 
 extern int get_id();
-extern void compile(char* code, int id);
+extern char* upload_code(char* code, int id);
 extern char* get_token_stream(int id);
 extern char* get_ast(int id);
 extern char* get_program(int id);
@@ -36,7 +36,8 @@ func main() {
 
 func enterHandler(c *gin.Context) {
 	id := int(C.get_id())
-	writeSuccessResult(c, strconv.Itoa(id))
+	response := "{\"code\":\"1\",\"msg\":\"Success\",\"result\":" + strconv.Itoa(id) + "}"
+	c.String(200, response)
 }
 
 // 处理提交代码请求
@@ -46,8 +47,10 @@ func postCodeHandler(c *gin.Context) {
 	nid, _ := strconv.Atoi(id)
 	cCode := C.CString(code)
 	defer C.free(unsafe.Pointer(cCode))
-	C.compile(cCode, C.int(nid))
-	writeSuccessResult(c, "成功")
+	cResponse := C.upload_code(cCode, C.int(nid))
+	defer C.free(unsafe.Pointer(cResponse))
+	goResponse := C.GoString(cResponse)
+	c.String(200, goResponse)
 }
 
 // 处理token流请求
@@ -57,7 +60,7 @@ func tokenStreamHandler(c *gin.Context) {
 	cTokenStream := C.get_token_stream(C.int(nid))
 	defer C.free(unsafe.Pointer(cTokenStream))
 	tokenStream := C.GoString(cTokenStream)
-	writeSuccessResult(c, tokenStream)
+	c.String(200, tokenStream)
 }
 
 // 处理ast请求
@@ -67,7 +70,7 @@ func astHandler(c *gin.Context) {
 	cAST := C.get_ast(C.int(nid))
 	defer C.free(unsafe.Pointer(cAST))
 	ast := C.GoString(cAST)
-	writeSuccessResult(c, ast)
+	c.String(200, ast)
 }
 
 // 处理program请求
@@ -77,16 +80,10 @@ func programHandler(c *gin.Context) {
 	cProgram := C.get_program(C.int(nid))
 	defer C.free(unsafe.Pointer(cProgram))
 	program := C.GoString(cProgram)
-	writeSuccessResult(c, program)
+	c.String(200, program)
 }
 
 // 处理调试请求
 func nextStepHandler(c *gin.Context) {
-	writeSuccessResult(c, "nothing")
-}
-
-// 返回成功结果
-func writeSuccessResult(c *gin.Context, result string) {
-	var form = "{\"code\": 1,\n\"msg\": \"操作成功\",\n\"result\": %s\n}"
-	c.String(200, form, result)
+	c.String(200, "nothing")
 }
