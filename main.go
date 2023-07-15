@@ -22,7 +22,7 @@ import (
 func main() {
 	server := gin.Default()
 
-	server.GET("/enter", enterHandler)
+	server.GET("/enter/id", enterHandler)
 	server.POST("/code", postCodeHandler)
 	server.GET("/tokens", tokenStreamHandler)
 	server.GET("/ast", astHandler)
