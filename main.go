@@ -15,12 +15,16 @@ import "C"
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"strconv"
 	"unsafe"
 )
 
 func main() {
 	server := gin.Default()
+
+	// 设置允许跨域
+	server.Use(corsMiddleware())
 
 	server.GET("/enter/id", enterHandler)
 	server.POST("/code", postCodeHandler)
@@ -34,6 +38,21 @@ func main() {
 	}
 }
 
+// 跨域中间件
+func corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusOK)
+			return
+		}
+		c.Next()
+	}
+}
+
+// 处理请求id
 func enterHandler(c *gin.Context) {
 	id := int(C.get_id())
 	response := "{\"code\":\"1\",\"msg\":\"Success\",\"result\":" + strconv.Itoa(id) + "}"
