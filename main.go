@@ -9,13 +9,15 @@ extern char* upload_code(char* code, int id);
 extern char* get_token_stream(int id);
 extern char* get_ast(int id);
 extern char* get_program(int id);
+extern char* get_debug_info(int id);
+extern void end_use(int id);
 */
 import "C"
 
 import (
 	"fmt"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"strconv"
 	"unsafe"
 )
@@ -23,32 +25,23 @@ import (
 func main() {
 	server := gin.Default()
 
-	// 设置允许跨域
-	server.Use(corsMiddleware())
+	// 设置允许跨域访问
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true
+	config.AllowCredentials = true
+
+	server.Use(cors.New(config))
 
 	server.GET("/enter/id", enterHandler)
 	server.POST("/code", postCodeHandler)
 	server.GET("/tokens", tokenStreamHandler)
 	server.GET("/ast", astHandler)
 	server.GET("/program", programHandler)
-	server.POST("/next", nextStepHandler)
+	server.GET("/debug", debugHandler)
+	server.DELETE("/:id", endUseHandler)
 
 	if err := server.Run(":8080"); err != nil {
 		fmt.Println("服务器启动错误！")
-	}
-}
-
-// 跨域中间件
-func corsMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusOK)
-			return
-		}
-		c.Next()
 	}
 }
 
@@ -103,6 +96,19 @@ func programHandler(c *gin.Context) {
 }
 
 // 处理调试请求
-func nextStepHandler(c *gin.Context) {
-	c.String(200, "nothing")
+func debugHandler(c *gin.Context) {
+	id := c.Query("id")
+	nid, _ := strconv.Atoi(id)
+	cDebugInfo := C.get_debug_info(C.int(nid))
+	defer C.free(unsafe.Pointer(cDebugInfo))
+	debugInfo := C.GoString(cDebugInfo)
+	c.String(200, debugInfo)
+}
+
+// 处理退出请求
+func endUseHandler(c *gin.Context) {
+	id := c.Param("id")
+	nid, _ := strconv.Atoi(id)
+	C.end_use(C.int(nid))
+	c.String(200, "Success")
 }
